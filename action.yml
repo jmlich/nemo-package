@@ -4,91 +4,60 @@ branding:
   icon: package
   color: blue
 inputs:
-  docker-image:
-    description: The Docker Image used to build the packages. Recommended are "menci/aur-builder-archlinux:latest", "menci/aur-builder-manjaro:latest".
-    required: false
-    default: menci/aur-builder-archlinux:latest
   platform:
     description: The platform (architecture) to build. Possible values are "linux/amd64" and "linux/arm64".
     required: false
     default: linux/amd64
-  pkgbuild-directory:
-    description: The directory containing PKGBUILD and other files required.
-    required: true
-  extra-build-dependencies:
-    description: Extra build dependencies to install before building.
-    required: false
-    default: ''
-  repo-url:
-    description: Your repo's URL. If specfied, the existence of the target package (with target version) will be tested by HEADing the URL <repo-url>/<package-file>.
-    required: false
-    default: ''
-  force-rebuild:
-    description: Don't check if the existence of the target package even if `repo-url` option is specfied.
-    required: false
-    default: 'false'
-  target-directory:
-    description: The target directory (on GitHub Action runner) to put the built package files to.
-    required: true
-  packager:
-    description: The value of "Packager" field of built package.
-    required: false
-    default: 'https://github.com/Menci/build-aur-package'
-  build-log-file:
-    description: The file path to save the build log.
-    required: false
-    default: '/dev/null'
+
+  pkg_builds_repo:
+    default: 'nemomobile-ux/nemo-packaging'
+  pkg_build_path: 
+    description: the name of directory in pkg_builds_repo where the PKGBUILD is for example lipstick-glacier-home-git
+  overlay_repo_url:
+    default: 'https://nemo.mlich.cz/build-results-x86_64/packages/'
+  overlay_repo_name:
+    default: 'nemomobile'
+  extra_packages:
+    decription: list of packages to be installed before build to avoid conficts
+
 outputs:
   skipped:
     description: Indicate if the build is skipped since the package already exists in the repo.
     value: ${{ steps.build.outputs.skipped }}
 runs:
-  using: "composite"
   steps:
     - id: build
       shell: bash
       run: |
-        if [[ "$FORCE_REBUILD" == "true" ]]; then
-            REPO_URL=""
-        fi
-
-        TEMP_TARGET_DIRECTORY="$(mktemp -d -t build-aur-package-XXXXXXXX)"
-
-        (
-            echo "Build start time: $(date)"
-            echo "PKGBUILD directory: $PKGBUILD_DIRECTORY"
-            echo -e '=====================================\n\n'
-        ) > "$BUILD_LOG_FILE"
-
-        echo "::group::Start Docker container" 
-        DOCKER_STATUS="0"
-        docker run --rm \
-                   --platform "$PLATFORM" \
-                   -v "$TEMP_TARGET_DIRECTORY:/target" \
-                   -v "$PKGBUILD_DIRECTORY:/pkgbuild" \
-                   -v "$ACTION_DIRECTORY/build-scripts:/build-scripts" \
-                   -e "REPO_URL=$REPO_URL" \
-                   -e "PACKAGER=$PACKAGER" \
-                   -e "EXTRA_BUILD_DEPENDENCIES=$EXTRA_BUILD_DEPENDENCIES" \
-                   "$DOCKER_IMAGE" \
-                   /build-scripts/entry.sh 2>&1 \
-              | tee -a "$BUILD_LOG_FILE" \
-            || DOCKER_STATUS="$?"
-        sudo chown -R "$(id -u):$(id -g)" "$TEMP_TARGET_DIRECTORY"
-        mkdir -p "$TARGET_DIRECTORY"
-        find "$TEMP_TARGET_DIRECTORY"/ -type f -exec cp "{}" "$TARGET_DIRECTORY"/ \;
-
-        rm -rf "$TEMP_TARGET_DIRECTORY"
-
-        exit $DOCKER_STATUS
-      env:
-        ACTION_DIRECTORY: ${{ github.action_path }}
-        DOCKER_IMAGE: ${{ inputs.docker-image }}
-        PLATFORM: ${{ inputs.platform }}
-        PKGBUILD_DIRECTORY: ${{ inputs.pkgbuild-directory }}
-        EXTRA_BUILD_DEPENDENCIES: ${{ inputs.extra-build-dependencies }}
-        REPO_URL: ${{ inputs.repo-url }}
-        FORCE_REBUILD: ${{ inputs.force-rebuild }}
-        TARGET_DIRECTORY: ${{ inputs.target-directory }}
-        PACKAGER: ${{ inputs.packager }}
-        BUILD_LOG_FILE: ${{ inputs.build-log-file }}
+      - uses: actions/checkout@v3
+        with:
+          repository: ${{ pkg_builds_repo }}
+          fetch-depth: 0
+          path: ./nemo-packaging
+      - name: Prepare environment
+        env:
+          OVERLAY_REPO_URL: ${{ overlay_repo_url }}
+          OVERLAY_REPO_NAME: ${{ overlay_repo_name }}
+          EXTRA_PACKAGES: ${{ extra_packages }}
+        run: |
+          sed -i "s|^\[core\]|\["$OVERLAY_REPO_NAME"\]\nSigLevel = Optional TrustAll\nServer = "$OVERLAY_REPO_URL"\n\n\[core\]|" /etc/pacman.conf
+          sed 's/OPTIONS=.*/OPTIONS=(!strip docs !libtool !staticlibs emptydirs zipman purge debug)/' -i /etc/makepkg.conf
+          pacman-mirrors -B unstable --geoip --api
+          pacman -Syyuu --noconfirm
+          pacman -Sy --noconfirm base-devel manjaro-release manjaro-tools manjaro-arm-tools wget
+          pacman -Sy --noconfirm $EXTRA_PACKAGES
+          echo "builder ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/builder
+      - name: Build
+        env:
+          PKG_BUILD_PATH: ${{ pkg_build_path }}
+        run: |
+          mkdir -p ./build/src
+          cd ./build
+          ln ../nemo-packaging/${PKG_BUILD_PATH}/PKGBUILD ./PKGBUILD
+          sed "s|::git+\${url}|::git+"${GITHUB_SERVER_URL}"/"${GITHUB_REPOSITORY}"#commit="${GITHUB_SHA}"|" -i PKGBUILD
+          chown -R builder:builder .
+          su builder -c 'makepkg -f --syncdeps --noconfirm'
+      - name: Archive build results
+        uses: actions/upload-artifact@v2
+        with:
+          path: ./build/*.pkg.tar.zst
