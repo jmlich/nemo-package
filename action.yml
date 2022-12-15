@@ -31,14 +31,14 @@ runs:
     - name: Checkout packaging
       uses: actions/checkout@v3
       with:
-        repository: ${{ pkg_builds_repo }}
+        repository: ${{ inputs.pkg_builds_repo }}
         fetch-depth: 0
         path: ./nemo-packaging
     - name: Prepare environment
       env:
-        OVERLAY_REPO_URL: ${{ overlay_repo_url }}
-        OVERLAY_REPO_NAME: ${{ overlay_repo_name }}
-        EXTRA_PACKAGES: ${{ extra_packages }}
+        OVERLAY_REPO_URL: ${{ inputs.overlay_repo_url }}
+        OVERLAY_REPO_NAME: ${{ inputs.overlay_repo_name }}
+        EXTRA_PACKAGES: ${{ inputs.extra_packages }}
       run: |
         sed -i "s|^\[core\]|\["$OVERLAY_REPO_NAME"\]\nSigLevel = Optional TrustAll\nServer = "$OVERLAY_REPO_URL"\n\n\[core\]|" /etc/pacman.conf
         sed 's/OPTIONS=.*/OPTIONS=(!strip docs !libtool !staticlibs emptydirs zipman purge debug)/' -i /etc/makepkg.conf
@@ -49,7 +49,7 @@ runs:
         echo "builder ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/builder
     - name: Build
       env:
-        PKG_BUILD_PATH: ${{ pkg_build_path }}
+        PKG_BUILD_PATH: ${{ inputs.pkg_build_path }}
       run: |
         mkdir -p ./build/src
         cd ./build
