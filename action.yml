@@ -35,6 +35,7 @@ runs:
         fetch-depth: 0
         path: ./nemo-packaging
     - name: Prepare environment
+      shell: /bin/bash
       env:
         OVERLAY_REPO_URL: ${{ inputs.overlay_repo_url }}
         OVERLAY_REPO_NAME: ${{ inputs.overlay_repo_name }}
@@ -48,6 +49,7 @@ runs:
         pacman -Sy --noconfirm $EXTRA_PACKAGES
         echo "builder ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/builder
     - name: Build
+      shell: /bin/bash
       env:
         PKG_BUILD_PATH: ${{ inputs.pkg_build_path }}
       run: |
