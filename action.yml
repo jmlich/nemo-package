@@ -26,8 +26,7 @@ outputs:
     description: Indicate if the build is skipped since the package already exists in the repo.
     value: ${{ steps.build.outputs.skipped }}
 runs:
-  using: 'docker'
-  image: 'manjarolinux/base'
+  using: "composite"
   steps:
     - name: Checkout packaging
       uses: actions/checkout@v3
