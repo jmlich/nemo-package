@@ -29,7 +29,8 @@ runs:
   using: 'docker'
   image: 'manjarolinux/base'
   steps:
-    - uses: actions/checkout@v3
+    - name: Checkout packaging
+      uses: actions/checkout@v3
       with:
         repository: ${{ pkg_builds_repo }}
         fetch-depth: 0
