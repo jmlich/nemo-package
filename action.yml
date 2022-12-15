@@ -26,9 +26,8 @@ outputs:
     description: Indicate if the build is skipped since the package already exists in the repo.
     value: ${{ steps.build.outputs.skipped }}
 runs:
-  runs-on: ubuntu-latest
-  container:
-    image: manjarolinux/base
+  using: 'docker'
+  image: 'manjarolinux/base'
   steps:
     - uses: actions/checkout@v3
       with:
