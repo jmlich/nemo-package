@@ -42,7 +42,7 @@ runs:
         fetch-depth: 0
         path: ./nemo-packaging
     -
-      name: Prepare environment
+      name: Build
       if: ${{ inputs.platform == 'x86_64' }}
       shell: bash
       env:
@@ -50,6 +50,7 @@ runs:
         OVERLAY_REPO_NAME: ${{ inputs.overlay_repo_name }}
         EXTRA_PACKAGES: ${{ inputs.extra_packages }}
         PACMAN_BRANCH: ${{ inputs.pacman_branch }}
+        PKG_BUILD_PATH: ${{ inputs.pkg_build_path }}
       run: |
         if [ -n "$OVERLAY_REPO_URL" ]; then
             sed -i "s|^\[core\]|\["$OVERLAY_REPO_NAME"\]\nSigLevel = Optional TrustAll\nServer = "$OVERLAY_REPO_URL"\n\n\[core\]|" /etc/pacman.conf
@@ -62,13 +63,6 @@ runs:
             pacman -Sy --noconfirm $EXTRA_PACKAGES
         fi
         echo "builder ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/builder
-    -
-      name: Build
-      if: ${{ inputs.platform == 'x86_64' }}
-      shell: bash
-      env:
-        PKG_BUILD_PATH: ${{ inputs.pkg_build_path }}
-      run: |
         mkdir -p ./build/src
         cd ./build
         ln ../nemo-packaging/${PKG_BUILD_PATH}/PKGBUILD ./PKGBUILD
@@ -80,6 +74,9 @@ runs:
       name: Build on arm
       shell: bash
       env:
+        OVERLAY_REPO_URL: ${{ inputs.overlay_repo_url }}
+        OVERLAY_REPO_NAME: ${{ inputs.overlay_repo_name }}
+        EXTRA_PACKAGES: ${{ inputs.extra_packages }}
         PACMAN_BRANCH: ${{ inputs.pacman_branch }}
         PKG_BUILD_PATH: ${{ inputs.pkg_build_path }}
       run: |
@@ -87,7 +84,7 @@ runs:
         cd ./build
         ln ../nemo-packaging/${PKG_BUILD_PATH}/PKGBUILD ./PKGBUILD
         cd ../nemo-packaging
-        sudo buildarmpkg -b $PACMAN_BRANCH -p ${PKG_BUILD_PATH}
+        sudo buildarmpkg -b $PACMAN_BRANCH -p ${PKG_BUILD_PATH} -r $OVERLAY_REPO_URL/$OVERLAY_REPO_NAME -i $EXTRA_PACKAGES
     -
       name: Archive build results
       uses: actions/upload-artifact@v2
