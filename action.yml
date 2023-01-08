@@ -47,7 +47,9 @@ runs:
         EXTRA_PACKAGES: ${{ inputs.extra_packages }}
         PACMAN_BRANCH: ${{ inputs.pacman_branch }}
       run: |
-        sed -i "s|^\[core\]|\["$OVERLAY_REPO_NAME"\]\nSigLevel = Optional TrustAll\nServer = "$OVERLAY_REPO_URL"\n\n\[core\]|" /etc/pacman.conf
+        if [ -n "$OVERLAY_REPO_URL" ]; then
+            sed -i "s|^\[core\]|\["$OVERLAY_REPO_NAME"\]\nSigLevel = Optional TrustAll\nServer = "$OVERLAY_REPO_URL"\n\n\[core\]|" /etc/pacman.conf
+        fi
         sed 's/OPTIONS=.*/OPTIONS=(!strip docs !libtool !staticlibs emptydirs zipman purge debug)/' -i /etc/makepkg.conf
         pacman-mirrors -B $PACMAN_BRANCH --geoip --api
         pacman -Syyuu --noconfirm
