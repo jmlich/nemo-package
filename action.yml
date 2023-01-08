@@ -81,11 +81,13 @@ runs:
       shell: bash
       env:
         PACMAN_BRANCH: ${{ inputs.pacman_branch }}
+        PKG_BUILD_PATH: ${{ inputs.pkg_build_path }}
       run: |
         mkdir -p ./build/src
         cd ./build
         ln ../nemo-packaging/${PKG_BUILD_PATH}/PKGBUILD ./PKGBUILD
-        sudo buildarmpkg -b $PACMAN_BRANCH -p .
+        cd ../nemo-packaging
+        sudo buildarmpkg -b $PACMAN_BRANCH -p ${PKG_BUILD_PATH}
     -
       name: Archive build results
       uses: actions/upload-artifact@v2
