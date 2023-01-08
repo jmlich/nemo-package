@@ -43,6 +43,7 @@ runs:
         path: ./nemo-packaging
     -
       name: Prepare environment
+      if: ${{ inputs.platform.name == 'linux/amd64' }}
       shell: bash
       env:
         OVERLAY_REPO_URL: ${{ inputs.overlay_repo_url }}
@@ -63,6 +64,7 @@ runs:
         echo "builder ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/builder
     -
       name: Build
+      if: ${{ inputs.platform.name == 'linux/amd64' }}
       shell: bash
       env:
         PKG_BUILD_PATH: ${{ inputs.pkg_build_path }}
@@ -74,6 +76,7 @@ runs:
         chown -R builder:builder .
         su builder -c 'makepkg -f --syncdeps --noconfirm'
     -
+      if: ${{ inputs.platform.name == 'linux/arm64' }}
       name: Build on arm
       shell: bash
       env:
