@@ -19,10 +19,13 @@ inputs:
     description: the name of directory in pkg_builds_repo where the PKGBUILD is for example lipstick-glacier-home-git
   overlay_repo_url:
     default: 'https://nemo.mlich.cz/build-results-x86_64/packages/'
+    required: false
   overlay_repo_name:
     default: 'nemomobile'
+    required: false
   extra_packages:
     decription: list of packages to be installed before build to avoid conficts
+    required: false
 
 outputs:
   skipped:
