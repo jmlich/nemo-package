@@ -75,6 +75,7 @@ runs:
         su builder -c 'makepkg -f --syncdeps --noconfirm'
     -
       name: Build on arm
+      shell: bash
       env:
         PACMAN_BRANCH: ${{ inputs.pacman_branch }}
       run: |
