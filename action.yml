@@ -86,7 +86,7 @@ runs:
         cd ./build
         ln ../nemo-packaging/${PKG_BUILD_PATH}/PKGBUILD ./PKGBUILD
         cd ../nemo-packaging
-        sudo buildarmpkg -b $PACMAN_BRANCH -p ${PKG_BUILD_PATH} ${OVERLAY_REPO_URL+-r $OVERLAY_REPO_URL/$OVERLAY_REPO_NAME}
+        sudo buildarmpkg -b $PACMAN_BRANCH -p ${PKG_BUILD_PATH} ${OVERLAY_REPO_URL+-r ${OVERLAY_REPO_URL}${OVERLAY_REPO_NAME}.db}
     -
       name: Archive build results
       uses: actions/upload-artifact@v2
